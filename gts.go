@@ -698,13 +698,14 @@ func (c *ScarConverter) ConvertFile(filename string) (string, error) {
 		case *ast.FuncDecl:
 			c.convertFuncDecl(d)
 		case *ast.GenDecl:
-			if d.Tok == token.TYPE {
+			switch d.Tok {
+			case token.TYPE:
 				for _, spec := range d.Specs {
 					if typeSpec, ok := spec.(*ast.TypeSpec); ok {
 						c.convertTypeSpec(typeSpec)
 					}
 				}
-			} else if d.Tok == token.VAR || d.Tok == token.CONST {
+			case token.VAR, token.CONST:
 				for _, spec := range d.Specs {
 					if valueSpec, ok := spec.(*ast.ValueSpec); ok {
 						for i, name := range valueSpec.Names {
