@@ -670,6 +670,7 @@ func (c *ScarConverter) convertImportPath(path string) string {
 	default:
 		return ""
 	}
+	return ""
 }
 
 func (c *ScarConverter) ConvertFile(filename string) (string, error) {
