@@ -1,0 +1,328 @@
+import "std/io"
+import "std/os"
+import "std/strings"
+
+class ScarConverter:
+    init:
+        ref token.FileSet this.fset
+        int this.indentLevel
+        strings.Builder this.output
+        list[string] this.imports
+        bool this.inFunction
+        bool this.inStruct
+        string this.currentFunc
+
+fn NewScarConverter() -> ref ScarConverter:
+    return &# composite literal
+
+fn indent() -> string:
+    return strings.Repeat("    ", c.indentLevel)
+
+fn write(string s):
+    c.output.WriteString(s)
+
+fn writeln(string s):
+    c.output.WriteString(c.indent() + s + "\n")
+
+fn writeRaw(string s):
+    c.output.WriteString(s)
+
+fn convertType(ast.Expr expr) -> string:
+    if expr == nil:
+        return ""
+    # type switch not supported */
+    return "unknown"
+
+fn convertExpr(ast.Expr expr) -> string:
+    if expr == nil:
+        return ""
+    # type switch not supported */
+    return "# unknown expression"
+
+fn convertCallExpr(ref ast.CallExpr call) -> string:
+    string funcName
+    # type switch not supported */
+    args = new list[string](len(call.Args))
+    for i, arg in call.Args:
+        args[i] = c.convertExpr(arg)
+    return fmt.Sprintf("%s(%s)", funcName, strings.Join(args, ", "))
+
+fn convertCompositeLit(ref ast.CompositeLit lit) -> string:
+    if lit.Type != nil:
+        typ = c.convertType(lit.Type)
+        if strings.HasPrefix(typ, "list["):
+            elements = new list[string](len(lit.Elts))
+            for i, elt in lit.Elts:
+                elements[i] = c.convertExpr(elt)
+            return fmt.Sprintf("[%s]", strings.Join(elements, ", "))
+    return "# composite literal"
+
+fn convertStmt(ast.Stmt stmt):
+    if stmt == nil:
+        return
+    # type switch not supported */
+
+fn convertAssignStmt(ref ast.AssignStmt stmt):
+    if len(stmt.Lhs) == 1 && len(stmt.Rhs) == 1:
+        lhs = c.convertExpr(stmt.Lhs[0])
+        rhs = c.convertExpr(stmt.Rhs[0])
+        switch stmt.Tok:
+            case token.ASSIGN:
+                c.writeln(fmt.Sprintf("%s = %s", lhs, rhs))
+            case token.DEFINE:
+                c.writeln(fmt.Sprintf("%s = %s", lhs, rhs))
+            case token.ADD_ASSIGN:
+                c.writeln(fmt.Sprintf("%s = %s + %s", lhs, lhs, rhs))
+            case token.SUB_ASSIGN:
+                c.writeln(fmt.Sprintf("%s = %s - %s", lhs, lhs, rhs))
+            default:
+                c.writeln(fmt.Sprintf("%s = %s", lhs, rhs))
+
+fn convertDeclStmt(ref ast.DeclStmt stmt):
+    if ok:
+        for _, spec in genDecl.Specs:
+            if ok:
+                for i, name in valueSpec.Names:
+                    string typ
+                    if valueSpec.Type != nil:
+                        typ = c.convertType(valueSpec.Type)
+                    if len(valueSpec.Values) > i:
+                        val = c.convertExpr(valueSpec.Values[i])
+                        if typ != "":
+                            c.writeln(fmt.Sprintf("%s %s = %s", typ, name.Name, val))
+                        else:
+                            c.writeln(fmt.Sprintf("%s = %s", name.Name, val))
+                    else:
+                        if typ != "":
+                            c.writeln(fmt.Sprintf("%s %s", typ, name.Name))
+
+fn convertIfStmt(ref ast.IfStmt stmt):
+    if stmt.Init != nil:
+        c.convertStmt(stmt.Init)
+    cond = c.convertExpr(stmt.Cond)
+    c.writeln(fmt.Sprintf("if %s:", cond))
+    c.indentLevel = c.indentLevel + 1
+    c.convertBlockStmt(stmt.Body)
+    c.indentLevel = c.indentLevel - 1
+    if stmt.Else != nil:
+        if ok:
+            c.convertElseIfStmt(elseIf)
+        elif ok:
+            c.writeln("else:")
+            c.indentLevel = c.indentLevel + 1
+            c.convertBlockStmt(elseBlock)
+            c.indentLevel = c.indentLevel - 1
+
+fn convertElseIfStmt(ref ast.IfStmt stmt):
+    if stmt.Init != nil:
+        c.convertStmt(stmt.Init)
+    cond = c.convertExpr(stmt.Cond)
+    c.writeln(fmt.Sprintf("elif %s:", cond))
+    c.indentLevel = c.indentLevel + 1
+    c.convertBlockStmt(stmt.Body)
+    c.indentLevel = c.indentLevel - 1
+    if stmt.Else != nil:
+        if ok:
+            c.convertElseIfStmt(elseIf)
+        elif ok:
+            c.writeln("else:")
+            c.indentLevel = c.indentLevel + 1
+            c.convertBlockStmt(elseBlock)
+            c.indentLevel = c.indentLevel - 1
+
+fn convertForStmt(ref ast.ForStmt stmt):
+    if stmt.Init != nil && stmt.Cond != nil && stmt.Post != nil:
+        init = strings.TrimSpace(c.convertStmtToString(stmt.Init))
+        cond = c.convertExpr(stmt.Cond)
+        post = strings.TrimSpace(c.convertStmtToString(stmt.Post))
+        initParts = strings.Split(init, " ")
+        if len(initParts) >= 3:
+            varName = initParts[len(initParts) - 3]
+            c.writeln(fmt.Sprintf("for %s; %s; %s:", varName, cond, post))
+        else:
+            c.writeln(fmt.Sprintf("while %s:", cond))
+    elif stmt.Cond != nil:
+        cond = c.convertExpr(stmt.Cond)
+        c.writeln(fmt.Sprintf("while %s:", cond))
+    else:
+        c.writeln("while true:")
+    c.indentLevel = c.indentLevel + 1
+    c.convertBlockStmt(stmt.Body)
+    c.indentLevel = c.indentLevel - 1
+
+fn convertRangeStmt(ref ast.RangeStmt stmt):
+    x = c.convertExpr(stmt.X)
+    if stmt.Key != nil && stmt.Value != nil:
+        key = c.convertExpr(stmt.Key)
+        value = c.convertExpr(stmt.Value)
+        c.writeln(fmt.Sprintf("for %s, %s in %s:", key, value, x))
+    elif stmt.Key != nil:
+        key = c.convertExpr(stmt.Key)
+        c.writeln(fmt.Sprintf("for %s in %s:", key, x))
+    c.indentLevel = c.indentLevel + 1
+    c.convertBlockStmt(stmt.Body)
+    c.indentLevel = c.indentLevel - 1
+
+fn convertReturnStmt(ref ast.ReturnStmt stmt):
+    if len(stmt.Results) == 0:
+        c.writeln("return")
+    elif len(stmt.Results) == 1:
+        result = c.convertExpr(stmt.Results[0])
+        c.writeln(fmt.Sprintf("return %s", result))
+    else:
+        results = new list[string](len(stmt.Results))
+        for i, result in stmt.Results:
+            results[i] = c.convertExpr(result)
+        c.writeln(fmt.Sprintf("return %s", strings.Join(results, ", ")))
+
+fn convertBlockStmt(ref ast.BlockStmt stmt):
+    for _, s in stmt.List:
+        c.convertStmt(s)
+
+fn convertIncDecStmt(ref ast.IncDecStmt stmt):
+    x = c.convertExpr(stmt.X)
+    if stmt.Tok == token.INC:
+        c.writeln(fmt.Sprintf("%s = %s + 1", x, x))
+    else:
+        c.writeln(fmt.Sprintf("%s = %s - 1", x, x))
+
+fn convertSwitchStmt(ref ast.SwitchStmt stmt):
+    if stmt.Init != nil:
+        c.convertStmt(stmt.Init)
+    if stmt.Tag != nil:
+        tag = c.convertExpr(stmt.Tag)
+        c.writeln(fmt.Sprintf("switch %s:", tag))
+    else:
+        c.writeln("switch:")
+    c.indentLevel = c.indentLevel + 1
+    c.convertBlockStmt(stmt.Body)
+    c.indentLevel = c.indentLevel - 1
+
+fn convertCaseClause(ref ast.CaseClause stmt):
+    if stmt.List == nil:
+        c.writeln("default:")
+    else:
+        cases = new list[string](len(stmt.List))
+        for i, expr in stmt.List:
+            cases[i] = c.convertExpr(expr)
+        c.writeln(fmt.Sprintf("case %s:", strings.Join(cases, ", ")))
+    c.indentLevel = c.indentLevel + 1
+    for _, s in stmt.Body:
+        c.convertStmt(s)
+    c.indentLevel = c.indentLevel - 1
+
+fn convertBranchStmt(ref ast.BranchStmt stmt):
+    switch stmt.Tok:
+        case token.BREAK:
+            c.writeln("break")
+        case token.CONTINUE:
+            c.writeln("continue")
+
+fn convertStmtToString(ast.Stmt stmt) -> string:
+    oldOutput = c.output
+    oldIndent = c.indentLevel
+    c.output = # composite literal
+    c.indentLevel = 0
+    c.convertStmt(stmt)
+    result = strings.TrimSpace(c.output.String())
+    c.output = oldOutput
+    c.indentLevel = oldIndent
+    return result
+
+fn convertFuncDecl(ref ast.FuncDecl decl):
+    if decl.Name.Name == "main" && decl.Recv == nil:
+        if decl.Body != nil:
+            c.convertBlockStmt(decl.Body)
+        return
+    string receiver
+    if decl.Recv != nil && len(decl.Recv.List) > 0:
+        field = decl.Recv.List[0]
+        if len(field.Names) > 0:
+            receiver = field.Names[0].Name
+        recvType = c.convertType(field.Type)
+        if strings.HasPrefix(recvType, "ref "):
+            recvType = strings.TrimPrefix(recvType, "ref ")
+        receiver = fmt.Sprintf("this %s", recvType)
+    funcName = decl.Name.Name
+    list[string] params
+    if decl.Type.Params != nil:
+        for _, field in decl.Type.Params.List:
+            paramType = c.convertType(field.Type)
+            for _, name in field.Names:
+                params = params.add(fmt.Sprintf("%s %s", paramType, name.Name))
+    string returnType
+    if decl.Type.Results != nil && len(decl.Type.Results.List) > 0:
+        if len(decl.Type.Results.List) == 1 && len(decl.Type.Results.List[0].Names) <= 1:
+            returnType = " -> " + c.convertType(decl.Type.Results.List[0].Type)
+    if receiver != "":
+        c.writeln(fmt.Sprintf("fn %s(%s)%s:", funcName, strings.Join(params, ", "), returnType))
+    else:
+        c.writeln(fmt.Sprintf("fn %s(%s)%s:", funcName, strings.Join(params, ", "), returnType))
+    if decl.Body != nil:
+        c.indentLevel = c.indentLevel + 1
+        c.convertBlockStmt(decl.Body)
+        c.indentLevel = c.indentLevel - 1
+    c.writeln("")
+
+fn convertTypeSpec(ref ast.TypeSpec spec):
+    # type switch not supported */
+
+fn convertImports(ref ast.GenDecl decl):
+    for _, spec in decl.Specs:
+        if ok:
+            path = strings.Trim(importSpec.Path.Value, "\"")
+            scarImport = c.convertImportPath(path)
+            if scarImport != "":
+                c.imports = c.imports.add(scarImport)
+
+fn convertImportPath(string path) -> string:
+    switch path:
+        case "fmt":
+            return "std/io"
+        case "os":
+            return "std/os"
+        case "strings":
+            return "std/strings"
+        case "strconv":
+            return "std/strings"
+        case "math":
+            return "std/math"
+        case "time":
+            return "std/time"
+        case "math/rand":
+            return "std/random"
+        default:
+            return ""
+
+fn ConvertFile(string filename):
+    if err != nil:
+        return "", err
+    if err != nil:
+        return "", err
+    for _, decl in file.Decls:
+        if ok && genDecl.Tok == token.IMPORT:
+            c.convertImports(genDecl)
+    for _, imp in c.imports:
+        c.writeln(fmt.Sprintf("import \"%s\"", imp))
+    if len(c.imports) > 0:
+        c.writeln("")
+    for _, decl in file.Decls:
+        # type switch not supported */
+    return c.output.String(), nil
+
+if len(os.Args) < 2:
+    print "Usage: go2scar <input.go> [output.scar]"
+    os.Exit(1)
+inputFile = os.Args[1]
+outputFile = strings.TrimSuffix(inputFile, ".go") + ".scar"
+if len(os.Args) > 2:
+    outputFile = os.Args[2]
+converter = NewScarConverter()
+if err != nil:
+    print "Error converting file: %v\n" | err
+    os.Exit(1)
+err = os.WriteFile(outputFile, (result), 0644)
+if err != nil:
+    print "Error writing output file: %v\n" | err
+    os.Exit(1)
+print "Successfully converted %s to %s\n" | inputFile, outputFile
