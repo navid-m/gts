@@ -643,7 +643,13 @@ func (c *ScarConverter) convertImports(decl *ast.GenDecl) {
 
 func (c *ScarConverter) convertImportPath(path string) string {
 	switch path {
+	case "crypto/sha256":
+	case "crypto/sha512":
+	case "crypto/sha1":
+	case "crypto/md5":
+		return "std/crypto"
 	case "io":
+	case "bufio":
 		return "std/io"
 	case "json":
 		return "std/json"
